@@ -15,9 +15,18 @@ def hf_cmd(*args):
     global _HF_BIN
     if _HF_BIN is None:
         _HF_BIN = ""
-        for pkg in glob.glob(os.path.expanduser("~/.npm/_npx/*/node_modules/hyperframes/package.json")):
+        npm_cache = os.path.expanduser("~/.npm")
+        try:
+            r = subprocess.run(["npm", "config", "get", "cache"], capture_output=True, text=True, timeout=5)
+            if r.returncode == 0 and r.stdout.strip():
+                npm_cache = r.stdout.strip()
+        except Exception:
+            pass
+        for pkg in glob.glob(os.path.join(npm_cache, "_npx", "*", "node_modules", "hyperframes", "package.json")):
             try:
-                if json.load(open(pkg, encoding="utf-8")).get("version") == HF_VERSION:
+                with open(pkg, encoding="utf-8") as fh:
+                    version = json.load(fh).get("version")
+                if version == HF_VERSION:
                     cand = os.path.join(os.path.dirname(os.path.dirname(pkg)), ".bin", "hyperframes")
                     if os.path.isfile(cand) and os.access(cand, os.X_OK):
                         _HF_BIN = cand
